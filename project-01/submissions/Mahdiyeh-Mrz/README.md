@@ -45,7 +45,6 @@ The goal isn't the highest possible accuracy — it's a transparent, explainable
 | Invalid `HeartRate` (= 7 bpm) | 2 — removed |
 | **Final dataset** | **1,012** patients (Low 404 · Mid 336 · High 272) |
 
-
 - **Parallel SQL layer:** 9 documented SQLite queries reproduce every group summary and threshold check directly on the cleaned table — no pandas required.
 - **Leakage-safe split:** stratified 80/20 train/test (`random_state=42`), `StandardScaler` fit on training data only.
 - **Two models trained and compared:**
@@ -112,8 +111,8 @@ sqlite3 maternal_health.db < queries.sql    # run the SQL layer
 
 ## 👤 Author
 
-**Mahdiyeh Mirzaei**
-🏢 StudyBuild
+**Mahdiyeh Mirzaei**  
+🏢 StudyBuild  
 🔗 [github.com/mahdiyeh-mirzaei-v2](https://github.com/mahdiyeh-mirzaei-v2)
 
 <div align="center">
