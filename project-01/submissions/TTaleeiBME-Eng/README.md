@@ -1,74 +1,60 @@
-# Maternal Health Risk Stratification – Interpretable Machine Learning with Python
+# Maternal Health Risk Stratification – v4 (Label-noise aware)
 
-**StudyBuild – Health & Medical Data Science Track – Project 01**
+**StudyBuild Project 01 – Health & Medical Data Science Track**
 
-## Clinical Problem
+## What changed in v4
 
-Maternal mortality remains a critical concern in low- and middle-income countries. This educational project explores a public dataset collected via an IoT-based risk-monitoring system in rural Bangladesh. The goal is to identify clinically relevant patterns associated with Low, Mid and High maternal risk levels and to build a simple, interpretable baseline classifier.
+| Improvement | Detail |
+|-------------|--------|
+| Label-noise handling | Explicitly removed **215 rows** that share identical features but have conflicting RiskLevel labels (35 unique feature groups) |
+| Exact duplicates | Still removed (standard practice) |
+| HeartRate anomalies | 2 records with HeartRate = 7 removed |
+| Final clean size | **380** high-quality records |
+| Pipeline + class_weight | Kept (professional & improves High-risk Recall) |
+| Still 3-class | Low / Mid / High (as required by the project brief) |
 
-**Important:** This is an educational risk-stratification exercise, **not** a diagnostic tool.
+## Test-set results (n = 76)
 
-## Dataset
+| Model | Accuracy | High-Risk Recall | High-Risk F1 |
+|-------|----------|------------------|--------------|
+| **Decision Tree (tuned, balanced)** | **80.3 %** | **0.95** | **0.95** |
+| Logistic Regression (balanced) | 71.1 % | 0.75 | 0.79 |
 
-- **Source:** UCI Machine Learning Repository – Maternal Health Risk  
-  https://archive.ics.uci.edu/dataset/863/pregnant+health+risk  
-- **DOI:** https://doi.org/10.24432/C5DP5D  
-- **License:** CC BY 4.0  
-- **Paper:** Ahmed et al. (2020) – Review and Analysis of Risk Factor of Maternal Health in Remote Area Using the Internet of Things (IoT)
+Best DT params: `criterion=entropy`, `max_depth=4`, `min_samples_leaf=3`.
 
-**Variables:** Age, SystolicBP, DiastolicBP, BS (blood sugar), BodyTemp, HeartRate, RiskLevel (target).
+## Cleaning rationale (important)
 
-After rigorous data-quality checks we use a cleaned version of **451 unique records** (Version B).
+- **Exact duplicates** (same features + same label): Removed. They add no new information and risk data leakage.
+- **True conflicts** (same features + different labels): Removed. These are real label noise; keeping them forces the model to learn contradictory signals.
+- This directly addresses the valid peer-feedback point about conflicting labels.
 
-## Repository Structure
+## How to run
+
+```bash
+pip install -r requirements.txt
+jupyter notebook notebooks/analysis.ipynb
+```
+
+## Repository layout
 
 ```
-maternal-health-risk/
+maternal-health-risk-v4/
 ├── README.md
 ├── requirements.txt
 ├── data/
-│   ├── README.md
-│   └── Maternal Health Risk Data Set.csv
-├── notebooks/
-│   ├── analysis.ipynb                          # Full reproducible analysis
-├── src/
-│   └── model.py                                # Reusable model helper functions
-├── figures/
-│   ├── q2_risk_feature_distributions.png
-│   ├── q3_scatter_bs_vs_sysbp.png
-│   ├── q4_confusion_matrices.png
-│   ├── q5_confusion_matrix_detailed.png
-│   ├── q6_error_distribution.png
-│   ├── q7_feature_importance.png
-│   └── q8_executive_summary_chart.png
-└── report/
-    ├── summary.pdf                             # Clinical analysis report (PDF)
+│   ├── Maternal Health Risk Data Set.csv   # original
+│   ├── maternal_health_clean.csv           # cleaned (380 rows)
+│   └── README.md
+├── notebooks/analysis.ipynb
+├── src/model.py
+├── figures/          # 10 plots
+└── report/summary.pdf
 ```
 
-
-
-## Key Findings (Summary)
-
-| Question | Main Result |
-|----------|-------------|
-| Q1 | After removing 562 duplicates and 2 implausible HeartRate records → 451 clean samples. Class balance: Low 51.7 %, High 24.8 %, Mid 23.5 %. |
-| Q2 | Blood sugar (BS) and SystolicBP show the clearest separation across risk groups. |
-| Q3 | BS has the strongest association with High Risk (Pearson r ≈ 0.57). Association ≠ causation. |
-| Q4 | Simple Decision Tree (max_depth=4) slightly outperforms Logistic Regression (68.1 % vs 67.0 % accuracy). |
-| Q5 | Overall accuracy is misleading. High-Risk Recall is only 0.61; Mid-Risk Recall is ~0.10. |
-| Q6 | Majority of errors are Mid → Low (62 %) and High → Low (28 %). Overlap in feature space is the main cause. |
-| Q7 | Feature importance: BS (56.8 %), SystolicBP (26.4 %), BodyTemp (10.2 %), Age (6.7 %). DiastolicBP & HeartRate unused by the tree. |
-| Q8 | Model may serve only as a preliminary screening aid. Additional variables (proteinuria, gestational age, BMI) are required before any real-world use. |
-
 ## Limitations
+- Small final sample (n = 380) after rigorous cleaning
+- Single geographic origin (rural Bangladesh)
+- Important clinical covariates missing
+- No external validation
 
-- Small sample size after cleaning (n = 451).
-- High original duplication rate (55 %).
-- Geographic limitation (rural Bangladesh).
-- No external validation set.
-- Missing important clinical covariates.
-
-## License & Citation
-
-Dataset: CC BY 4.0 (UCI).  
-Please cite the original UCI page and the 2020 introductory paper when using this analysis.
+**Disclaimer:** Educational risk-stratification exercise only – **not** a diagnostic tool.

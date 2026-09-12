@@ -1,42 +1,25 @@
-# Data Directory
+# Data
 
-## Source Dataset
+## Original source
+- UCI Maternal Health Risk Data Set
+- https://archive.ics.uci.edu/dataset/863/pregnant+health+risk
+- DOI: https://doi.org/10.24432/C5DP5D
+- License: CC BY 4.0
 
-**File:** `Maternal Health Risk Data Set.csv`
+## Cleaning steps applied (v4)
 
-- **Official source:** UCI Machine Learning Repository  
-  https://archive.ics.uci.edu/dataset/863/pregnant+health+risk
-- **DOI:** https://doi.org/10.24432/C5DP5D
-- **License:** CC BY 4.0
-- **Introductory paper:** Ahmed, M., Kashem, M.A., Rahman, M., Khatun, S. (2020). Review and Analysis of Risk Factor of Maternal Health in Remote Area Using the Internet of Things (IoT). Lecture Notes in Electrical Engineering, vol 632.
+1. **Implausible values**: Removed 2 records with HeartRate < 40 (HeartRate = 7).
+2. **True label conflicts (label noise)**: Removed all rows belonging to feature combinations that appear with more than one different RiskLevel (215 rows across 35 unique feature groups). These are genuine contradictions and were removed to avoid teaching the model conflicting signals.
+3. **Exact duplicates**: Removed remaining exact duplicate rows (identical features + identical RiskLevel).
 
-## Dataset Description
+**Final clean size: 380 records**
 
-Data collected from hospitals, community clinics and maternal-health care settings in rural Bangladesh through an IoT-based risk monitoring system.
+| RiskLevel  | Count | Proportion |
+|------------|-------|------------|
+| low risk   | 203   | 53.4 %     |
+| high risk  | 101   | 26.6 %     |
+| mid risk   | 76    | 20.0 %     |
 
-| Variable    | Role   | Type        | Description                                      | Units  |
-|-------------|--------|-------------|--------------------------------------------------|--------|
-| Age         | Feature| Integer     | Maternal age in years                            | years  |
-| SystolicBP  | Feature| Integer     | Upper value of blood pressure                    | mmHg   |
-| DiastolicBP | Feature| Integer     | Lower value of blood pressure                    | mmHg   |
-| BS          | Feature| Continuous  | Blood sugar (glucose) level                      | mmol/L |
-| BodyTemp    | Feature| Continuous  | Body temperature                                 | °F     |
-| HeartRate   | Feature| Integer     | Resting heart rate                               | bpm    |
-| RiskLevel   | Target | Categorical | Predicted risk intensity (low / mid / high risk) | -      |
-
-- Official UCI instances: 1,013  
-- File used in this project: 1,014 rows (minor discrepancy documented)  
-- Missing values: None
-
-## Cleaning Applied (Version B – recommended)
-
-1. Removed 562 exact duplicate rows.
-2. Removed 2 physiologically implausible records with `HeartRate = 7`.
-3. Final cleaned size: **451 unique records**.
-
-Class distribution after cleaning:
-- low risk: 233 (51.7%)
-- high risk: 112 (24.8%)
-- mid risk: 106 (23.5%)
-
-The cleaned file is saved as `maternal_health_clean.csv` by the analysis notebook.
+Files:
+- `Maternal Health Risk Data Set.csv` – original raw file
+- `maternal_health_clean.csv` – fully cleaned version used for modelling
