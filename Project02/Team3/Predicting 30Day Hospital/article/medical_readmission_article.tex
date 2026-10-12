@@ -1,0 +1,1122 @@
+
+\documentclass[10pt,a4paper]{article}
+
+% ============================================================
+% Medical Research Article — 30-Day Readmission in Diabetes
+% ============================================================
+\usepackage[a4paper,margin=2.2cm,top=2.3cm,bottom=2.4cm]{geometry}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{english}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+\setlength{\emergencystretch}{3em}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable,tabularx,array,multirow}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\definecolor{medicalblue}{HTML}{174A6E}
+\definecolor{medicallight}{HTML}{EAF2F7}
+\definecolor{darkgray}{HTML}{3D4650}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{siunitx}
+\usepackage{url}
+\usepackage[hidelinks,pdftitle={Predicting 30-Day Hospital Readmission in Patients With Diabetes},pdfauthor={Atefe Asadi, Iman Jamshidi, Mahdiyeh Mirzaei Valojerdie}]{hyperref}
+\usepackage{bookmark}
+
+\captionsetup{font=small,labelfont=bf}
+\titleformat{\section}{\Large\bfseries\color{medicalblue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkgray}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{darkgray}}{\thesubsubsection}{0.7em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small 30-Day Readmission in Hospitalized Patients With Diabetes}
+\rhead{\small Medical Data Science Report}
+\cfoot{\small \thepage\ of \pageref{LastPage}}
+\setlength{\headheight}{14pt}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\fig}[2]{\begin{figure}[H]\centering\includegraphics[width=#1\textwidth]{Figures/#2}\end{figure}}
+\newcommand{\pval}[1]{\ensuremath{p=#1}}
+\newcommand{\auc}{ROC--AUC}
+\newcommand{\prauc}{PR--AUC}
+
+\begin{document}
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlepage}
+\centering
+\vspace*{1.0cm}
+{\Large\bfseries\color{medicalblue} DATA-DRIVEN MEDICAL ANALYTICS}\\[0.7cm]
+{\Huge\bfseries Predicting 30-Day Hospital Readmission in Patients With Diabetes}\\[0.45cm]
+{\Large A Leakage-Aware Statistical and Machine-Learning Analysis of 101,766 Hospital Encounters}\\[0.9cm]
+{\large\bfseries Atefe Asadi}\\[0.12cm]
+{\large\bfseries Iman Jamshidi}\\[0.12cm]
+{\large\bfseries Mahdiyeh Mirzaei Valojerdie}\\[1.0cm]
+
+\begin{tcolorbox}[colback=medicallight,colframe=medicalblue,width=0.92\textwidth,arc=2mm,boxrule=0.8pt]
+\centering
+\textbf{Research Article / Medical Data Science Report}\\[0.25cm]
+Observational cohort analysis \quad $\cdot$ \quad Effect-size statistics \quad $\cdot$ \quad Machine learning\\
+Patient-grouped validation \quad $\cdot$ \quad Subgroup error analysis
+\end{tcolorbox}
+
+\vfill
+\small
+\begin{tabular}{@{}lp{9.6cm}@{}}
+\textbf{Dataset:} & Diabetes 130-US Hospitals for Years 1999--2008\\
+\textbf{Primary outcome:} & Readmission within 30 days (\texttt{<30})\\
+\textbf{Study population:} & 101,766 hospital encounters\\
+\textbf{Modeling cohort:} & 99,343 encounters after exclusion of death/hospice records\\
+\textbf{Primary modeling framework:} & Logistic Regression, Decision Tree, Random Forest, XGBoost\\
+\textbf{Software:} & Python, pandas, SciPy, scikit-learn, XGBoost, Matplotlib, Seaborn\\
+\end{tabular}
+
+\vfill
+{\large\textbf{Prepared as a publication-style analytical manuscript}}\\
+\vspace{0.3cm}
+{\small Version prepared from the supplied project archive}\\
+{\small October 2026}
+\end{titlepage}
+
+% ============================================================
+% FRONT MATTER
+% ============================================================
+\pagenumbering{roman}
+\begin{abstract}
+\textbf{Background:} Thirty-day hospital readmission is an important quality and care-coordination outcome, particularly in patients with complex chronic disease. Diabetes-related hospital encounters involve heterogeneous diagnoses, comorbidity, medication exposure, prior utilization, and discharge pathways. Predictive models can support risk stratification, but class imbalance, repeated encounters from the same patient, coding artifacts, and subgroup instability can produce misleadingly optimistic results.
+
+\textbf{Objective:} To characterize factors associated with early readmission and evaluate patient-level leakage-aware machine-learning models for identifying encounters followed by readmission within 30 days.
+
+\textbf{Methods:} The analysis used 101,766 encounters from the Diabetes 130-US Hospitals dataset. Exploratory analysis used encounter counts, outcome-specific rates, standardized mean differences (SMDs), Cramér's $V$, Pearson correlations, and interquartile-range screening. For prediction, 99,343 encounters remained after exclusion of death/hospice discharges. A GroupShuffleSplit by patient identifier created an 80/20 train/test partition with zero patient overlap. Logistic Regression, Decision Tree, Random Forest, and XGBoost models were evaluated under class imbalance. Recall-oriented thresholds were selected using validation-set $F_2$ scores. A second-stage XGBoost model was optimized with grouped randomized cross-validation. Subgroup performance was examined using Recall and false-negative rate (FNR) across race, gender, and age bands.
+
+\textbf{Results:} Early readmission occurred in 11.16\% of all encounters (11,357/101,766), and in 11.39\% of the modeling cohort. Prior inpatient utilization was the clearest numeric signal: mean prior inpatient visits were 1.22 for early readmissions versus 0.38 for encounters without early readmission, with SMD $=0.415$. Cramér's $V$ values were small overall; discharge disposition was the largest categorical association ($V=0.125$). Stage-A XGBoost achieved ROC--AUC $=0.683$ and PR--AUC $=0.238$. Replacing the default threshold of 0.50 by the validation-tuned threshold of 0.41 raised XGBoost Recall from 0.598 to 0.797 with unchanged ROC--AUC and PR--AUC, at the cost of Precision (0.152 versus 0.188) and Accuracy (0.474 versus 0.663); about 59\% of test encounters were flagged. The final hyperparameter-searched XGBoost, evaluated at threshold 0.50, achieved Recall $=0.619$, Precision $=0.181$, F1 $=0.280$, and ROC--AUC approximately 0.68. Age-band FNR gaps were severe in all four models (0.885--0.967, with FNR $=1.00$ in at least one band); the affected youngest bands contained only 1 and 6 early readmissions, so the exact magnitude is uncertain, but the models cannot be considered safe for these patients without separate validation.
+
+\textbf{Conclusion:} Prior inpatient utilization and discharge disposition were the most consistent predictive signals, while overall discrimination remained modest. The results support use as a human-reviewed risk-stratification aid rather than autonomous clinical decision-making. External and contemporary validation, calibration assessment, uncertainty intervals, and larger subgroup samples are required before clinical deployment.
+\end{abstract}
+
+\noindent\textbf{Keywords:} diabetes; hospital readmission; 30-day readmission; healthcare analytics; machine learning; XGBoost; imbalanced classification; decision threshold; patient-level leakage; fairness; risk stratification.
+
+\clearpage
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+Hospital readmission is a clinically and operationally important outcome because it reflects a combination of disease burden, previous healthcare utilization, discharge circumstances, continuity of care, and the natural history of chronic illness. In patients with diabetes, these determinants can interact with multiple comorbidities, medication changes, acute complications, and frequent exposure to inpatient and emergency services. Consequently, a single administrative encounter may represent only one observation within a longitudinal pattern of care.
+
+The present study examines the problem of identifying hospital encounters followed by readmission within 30 days. The analysis is based on the Diabetes 130-US Hospitals dataset, which contains approximately one hundred thousand hospital encounters for patients with diabetes across multiple U.S. hospitals and years 1999--2008. The dataset is especially useful for methodological work because it combines clinical and administrative variables, contains repeated encounters for the same patients, includes substantial missingness, and has a markedly imbalanced early-readmission outcome.
+
+A central methodological challenge is that repeated encounters from one patient can cause information leakage if encounters from the same patient are randomly divided between training and testing. A model may then appear to generalize well while partly recognizing patient-specific patterns that are represented in both partitions. This study therefore uses patient-grouped splitting and grouped cross-validation. The objective is not simply to maximize a conventional accuracy measure, but to assess whether the models can identify a meaningful proportion of early-readmission cases while making the trade-off between Recall and Precision explicit.
+
+The work has four complementary aims:
+\begin{enumerate}[leftmargin=1.2cm]
+\item describe the distribution of 30-day readmission and important utilization patterns;
+\item quantify differences using interpretable effect sizes rather than relying only on statistical significance;
+\item compare four classification algorithms under patient-level leakage control and class imbalance;
+\item examine subgroup error patterns and translate the findings into cautious, clinically relevant decision-support implications.
+\end{enumerate}
+
+The distinction between association and causation is maintained throughout. A feature that is strongly associated with readmission is not necessarily a modifiable cause of readmission, and model importance is not evidence of clinical causality.
+
+% ============================================================
+\section{Clinical and Analytical Background}
+% ============================================================
+
+\subsection{Thirty-day readmission as a medical outcome}
+
+Thirty-day readmission is commonly used as a short-horizon outcome for evaluating post-discharge care processes and identifying patients who may require closer follow-up. For chronic conditions such as diabetes, readmission may arise from recurrent disease-related complications, comorbidity, inadequate transition planning, medication issues, or unrelated acute events. Because the present dataset is observational and administrative in nature, the analysis does not attempt to attribute individual readmissions to a specific clinical mechanism.
+
+The target is defined as:
+\[
+Y =
+\begin{cases}
+1, & \text{if the encounter is followed by readmission within 30 days},\\
+0, & \text{otherwise}.
+\end{cases}
+\]
+The original three-level outcome (\texttt{<30}, \texttt{>30}, \texttt{NO}) is therefore collapsed into a binary endpoint for modeling. This formulation directly reflects the clinical question of early post-discharge recurrence.
+
+\subsection{Why class imbalance matters}
+
+Only 11.16\% of the full dataset belongs to the early-readmission class. A classifier that labels every encounter as negative would have an apparent accuracy of approximately 88.84\%, despite identifying no patients who experience early readmission. Accuracy is consequently a poor headline metric in this setting.
+
+For a binary classifier, the principal quantities are:
+\[
+\mathrm{Recall} = \frac{TP}{TP+FN},
+\qquad
+\mathrm{Precision} = \frac{TP}{TP+FP},
+\]
+and
+\[
+F_1 = \frac{2\,\mathrm{Precision}\,\mathrm{Recall}}
+{\mathrm{Precision}+\mathrm{Recall}}.
+\]
+When missing a true event is considered more costly than producing an additional alert, an $F_\beta$ measure with $\beta>1$ can be used:
+\[
+F_\beta=(1+\beta^2)
+\frac{\mathrm{Precision}\times\mathrm{Recall}}
+{\beta^2\mathrm{Precision}+\mathrm{Recall}}.
+\]
+This study uses $\beta=2$, giving:
+\[
+F_2=5\frac{\mathrm{Precision}\times\mathrm{Recall}}
+{4\mathrm{Precision}+\mathrm{Recall}}.
+\]
+
+\subsection{Discrimination and ranking}
+
+ROC--AUC summarizes the ability of a model to rank positive encounters above negative encounters over all possible thresholds. Precision--Recall analysis is especially informative when the positive class is rare. The area under the Precision--Recall curve (\prauc) therefore complements ROC--AUC and helps describe how useful a model remains when positive prevalence is low.
+
+The false-negative rate is:
+\[
+\mathrm{FNR}=\frac{FN}{FN+TP}=1-\mathrm{Recall}.
+\]
+For a clinical triage application, FNR is operationally important because a false negative corresponds to an early-readmission encounter that was not flagged by the model.
+
+% ============================================================
+\section{Materials and Methods}
+% ============================================================
+
+\subsection{Data source and study cohort}
+
+The supplied project uses the Diabetes 130-US Hospitals for Years 1999--2008 dataset. The original dataset contains 101,766 encounters and 71,518 unique patients, with 50 variables after the project preprocessing and data-quality review. The data represent hospital encounters rather than independent persons: 54,745 patients contribute a single encounter, 16,773 patients contribute more than one, and the maximum is 40 encounters for one patient. This distinction is essential when estimating model performance.
+
+The project retained a full-cohort exploratory dataset for descriptive analysis. For prediction, 2,423 death/hospice encounters were excluded, resulting in 99,343 encounters. The exclusion was made because the corresponding discharge circumstances do not represent a conventional post-discharge readmission risk problem and because the \texttt{death\_or\_hospice} indicator became constant after restriction.
+
+\begin{table}[H]
+\centering
+\caption{Study population and analytical stages.}
+\label{tab:cohort}
+\begin{tabularx}{\textwidth}{lrrY}
+\toprule
+Stage & Encounters & Early readmission & Purpose\\
+\midrule
+Full dataset & 101,766 & 11,357 (11.16\%) & EDA and descriptive statistics\\
+Non-death/hospice cohort & 99,343 & 11.39\% & Predictive modeling\\
+Training set & 79,395 & -- & Model fitting\\
+Held-out test set & 19,948 & 2,260 (11.33\%) & Final performance assessment\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Data quality and preprocessing}
+
+The project documented duplicate checking, missingness, constant-variable screening, categorical recoding, numerical standardization, and outlier screening. The data contain substantial missingness in variables such as \texttt{weight}, \texttt{payer\_code}, and \texttt{medical\_specialty}. The \texttt{weight} field is approximately 96.86\% missing and was not treated as a reliable continuous measurement.
+
+The preprocessing pipeline uses median imputation for numerical variables and most-frequent or explicit ``Missing'' categories for categorical variables. Numerical variables are standardized where required by the model. Categorical variables are one-hot encoded inside a modeling pipeline so that transformations are estimated only from training data.
+
+Two important limitations were retained rather than hidden. First, administrative identifiers such as \texttt{admission\_type\_id}, \texttt{discharge\_disposition\_id}, and \texttt{admission\_source\_id} were automatically treated as numeric in addition to their encoded categorical versions. Second, raw diagnosis columns \texttt{diag\_1}--\texttt{diag\_3} remain alongside grouped diagnosis categories, producing a very wide one-hot feature space. These choices are potential sources of noise and are therefore discussed as limitations rather than interpreted as clinical mechanisms.
+
+\begin{table}[H]
+\centering
+\caption{Data-quality audit and preparation decisions.}
+\label{tab:dq}
+\small
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+Step & Result / decision\\
+\midrule
+Loading & 101,766 rows $\times$ 50 columns; files read with \texttt{keep\_default\_na=False} so that the literal string \texttt{None} in \texttt{A1Cresult} and \texttt{max\_glu\_serum} is preserved as a valid category; \texttt{?} treated as the missing-value marker\\
+Duplicates & 0 duplicate encounter IDs and 0 exact duplicate rows; no rows removed\\
+Repeat encounters & 16,773 patients with multiple encounters retained; patient identifier used for grouped splitting\\
+Missing values & \texttt{weight} 96.86\% (excluded); \texttt{medical\_specialty} 49.08\%; \texttt{payer\_code} 39.56\%; \texttt{race} 2.23\%; \texttt{diag\_3} 1.40\%; \texttt{diag\_2} 0.35\%; \texttt{diag\_1} 0.02\%. The latter were recoded to an explicit \texttt{Missing} category; no rows dropped. Three Unknown/Invalid gender values recoded to \texttt{Missing}\\
+Constant features & \texttt{examide} and \texttt{citoglipton} have a single unique value and were excluded\\
+Outlier screening & 1.5$\times$IQR fences flag many values (16.45\% of \texttt{number\_outpatient}, 11.19\% of \texttt{number\_emergency}), but these variables are zero-inflated (83.55\% and 88.81\% zeros); IQR was a screening tool only and no observations were removed\\
+Code mapping & \texttt{admission\_type\_id}, \texttt{admission\_source\_id}, and \texttt{discharge\_disposition\_id} mapped to readable labels; 0 unmapped values\\
+Feature engineering & Binary target \texttt{early\_readmission}; \texttt{death\_or\_hospice} flag from discharge IDs 11, 13, 14, 19, 20, 21 (2,423 encounters, 2.38\%); ICD-9 grouping of \texttt{diag\_1}--\texttt{diag\_3} into ten broad categories (Circulatory, Respiratory, Digestive, Diabetes, Injury, Musculoskeletal, Genitourinary, Neoplasms, Other, Missing)\\
+Predictors & 51 predictor columns (11 numeric, 40 categorical). Race, gender, and age were kept as predictors and used for subgroup evaluation. Excluded from predictors: identifiers, repeat-patient flag, outcome columns, \texttt{weight}, and the two constant features\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Extreme utilization counts exist (for example, up to 76 emergency visits and 42 outpatient visits in the prior period for a single encounter) and were retained because they may represent genuine high-utilization patients. In addition, 3,691 encounters (3.63\%) have a missing discharge disposition and 5,291 admission types are coded \texttt{NULL}.
+
+The following steps were \emph{not} performed because the project files do not support them: resampling (SMOTE or under-sampling), formal feature selection, logarithmic or power transformations, medication-column aggregation, collinearity filtering, and imputation beyond median/most-frequent.
+
+\subsection{Exploratory statistical analysis}
+
+The exploratory analysis emphasizes effect sizes and transparent descriptive comparisons.
+
+\subsubsection{Standardized mean difference}
+
+For a numeric variable $X$, the standardized mean difference between early readmission and all other encounters is:
+\[
+\mathrm{SMD}
+=
+\frac{\bar X_1-\bar X_0}
+{\sqrt{\frac{1}{2}(s_1^2+s_0^2)}}.
+\]
+This unit-free quantity allows variables measured on different scales to be compared. Absolute SMD values around 0.2, 0.5, and 0.8 are often described as small, medium, and large in general methodological guidance, although these thresholds are not clinical laws.
+
+\subsubsection{Cramér's V}
+
+For categorical variables, association with the binary outcome was summarized by Cramér's $V$:
+\[
+V=
+\sqrt{
+\frac{\chi^2/n}
+{\min(r-1,k-1)}
+},
+\]
+where $n$ is the sample size and $r$ and $k$ are the numbers of rows and columns in the contingency table.
+
+\subsubsection{Correlation and outlier screening}
+
+Pearson correlation was used as a descriptive screening tool for relationships among numeric utilization variables. Extreme values were screened using the conventional interquartile range (IQR) fences:
+\[
+\left[Q_1-1.5\,IQR,\;Q_3+1.5\,IQR\right],
+\qquad
+IQR=Q_3-Q_1.
+\]
+Extreme utilization counts were retained when they could plausibly represent genuine high-utilization patients.
+
+\subsubsection{Scope of statistical inference}
+
+The notebook relies on effect-size-based descriptive statistics rather than formal hypothesis tests; \emph{no p-values are reported anywhere in the analysis}, and none have been added here. Hypotheses were not formally stated because the analysis is exploratory, and no significance level applies. The chi-square statistic is computed inside the Cramér's $V$ function but is not displayed. Effect sizes are an appropriate choice with roughly 100,000 encounters, since even trivial differences would yield very small p-values; effect sizes show whether a difference is large enough to matter.
+
+\begin{table}[H]
+\centering
+\caption{Statistical methods used and why they were selected.}
+\label{tab:methods}
+\small
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+Method & Purpose & Rationale\\
+\midrule
+Standardized mean difference & Compare numeric variables between early readmission and all other encounters & Unit-free effect size, informative regardless of sample size\\
+Cramér's $V$ & Association between a categorical variable and the binary outcome & Handles variables with different numbers of levels; bounded between 0 and 1\\
+Pearson correlation & Relationships among numeric variables & Simple screening of linear association and redundancy\\
+$1.5\times$IQR rule & Screen extreme values & A screening device, not an automatic deletion rule\\
+Group rates with counts & Compare early-readmission percentages across groups & Transparent; sample sizes shown to avoid over-reading small groups\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+An SMD of 0.415 is a small-to-moderate difference by common rules of thumb (0.2 small, 0.5 medium); it is the strongest numeric signal but still leaves large overlap between groups. All Cramér's $V$ values are small (the largest is 0.125), and statistically detectable associations are not necessarily practically useful. The data are observational and no causal design was used. A natural extension, not performed here, would be chi-square and Mann--Whitney tests (or logistic regression) with confidence intervals and a multiple-comparison correction.
+
+\subsection{Patient-level leakage control}
+
+The patient identifier \texttt{patient\_nbr} was used only for grouping and was not supplied as a predictive feature. An 80/20 GroupShuffleSplit with \texttt{random\_state=123} produced:
+\begin{itemize}[leftmargin=1.2cm]
+\item training: 79,395 encounters and 55,992 patients;
+\item testing: 19,948 encounters and 13,998 patients;
+\item patient overlap: zero.
+\end{itemize}
+This is a critical safeguard because a patient can contribute multiple hospital encounters. The modeling design therefore estimates generalization to patients not represented in the training partition.
+
+\subsection{Machine-learning models}
+
+Four algorithms were compared:
+\begin{enumerate}[leftmargin=1.2cm]
+\item Logistic Regression as a transparent linear baseline;
+\item Decision Tree for an interpretable nonlinear model;
+\item Random Forest as an ensemble of decision trees;
+\item XGBoost as a gradient-boosted tree ensemble.
+\end{enumerate}
+
+Class imbalance was addressed using class weighting for Logistic Regression and Decision Tree, balanced subsampling for Random Forest, and a positive-class weight ratio for XGBoost.
+
+\begin{table}[H]
+\centering
+\caption{Stage-A model configurations.}
+\label{tab:models}
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+Model & Main settings\\
+\midrule
+Logistic Regression & \texttt{max\_iter=2000}; balanced class weights\\
+Decision Tree & \texttt{max\_depth=8}; \texttt{min\_samples\_leaf=50}; balanced class weights\\
+Random Forest & 250 trees; \texttt{max\_depth=16}; \texttt{min\_samples\_leaf=10}; balanced subsampling\\
+XGBoost & 250 trees; depth 5; learning rate 0.05; \texttt{min\_child\_weight=5}; subsample 0.8; column subsample 0.8; regularization 1.0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Threshold optimization}
+
+The default probability threshold of 0.50 is not necessarily appropriate when the clinical objective emphasizes sensitivity. A validation split within the training data was therefore used to search thresholds from 0.05 to 0.50 in increments of 0.01. The threshold maximizing $F_2$ was selected for each stage-A model. The held-out test set remained untouched during this selection.
+
+The threshold search creates an explicit operating-point trade-off: lowering the threshold increases the number of encounters flagged, generally increasing Recall while decreasing Precision. This trade-off is central to interpreting the model as a triage tool rather than as an autonomous diagnostic instrument.
+
+\subsection{Hyperparameter search}
+
+A second-stage XGBoost model used RandomizedSearchCV with 12 sampled parameter combinations and three-fold StratifiedGroupKFold validation grouped by patient. The optimization criterion was $F_2$. The best parameter set was:
+\[
+n_{\mathrm{estimators}}=200,\quad
+\mathrm{max\_depth}=3,\quad
+\mathrm{learning\ rate}=0.05,
+\]
+\[
+\mathrm{min\_child\ weight}=5,\quad
+\mathrm{subsample}=0.8,\quad
+\mathrm{colsample\_bytree}=1.0,\quad
+\lambda=1.0.
+\]
+The best cross-validated $F_2$ was 0.406.
+
+\subsection{Subgroup analysis}
+
+Fairness-oriented analysis focused on Recall and FNR within race, gender, and age groups. For each model:
+\[
+\mathrm{FNR\ gap}
+=
+\max_g(\mathrm{FNR}_g)-\min_g(\mathrm{FNR}_g).
+\]
+These estimates were interpreted with subgroup sample sizes. In particular, an FNR of 1.0 in a group containing only one positive case does not provide the same evidentiary strength as an FNR estimated from hundreds of positive cases.
+
+% ============================================================
+\section{Results}
+% ============================================================
+
+\subsection{Readmission outcome distribution}
+
+The three-level outcome distribution is highly imbalanced. Of 101,766 encounters, 11,357 (11.16\%) were followed by readmission within 30 days, 34.93\% were readmitted after 30 days, and 53.91\% were not readmitted.
+
+\fig{0.78}{Distribution of Readmission Outcomes.png}
+\captionof{figure}{Distribution of the three readmission outcomes in the full dataset. The early-readmission class is the minority outcome.}
+\label{fig:outcome}
+
+The imbalance shown in Figure~\ref{fig:outcome} explains why Accuracy cannot be used as the sole performance criterion. The clinical question is specifically whether the minority early-readmission cases can be identified with acceptable false-alarm burden.
+
+\subsection{Binary target distribution}
+
+Because the modeling problem is binary, the original three categories were merged: \texttt{NO} and \texttt{>30} form class 0 (no early readmission) and \texttt{<30} forms class 1. Figure~\ref{fig:binary} shows the resulting class balance at three stages of the analysis.
+
+\begin{table}[H]
+\centering
+\caption{Mapping of the original readmission categories to the binary target.}
+\label{tab:binary}
+\begin{tabular}{lrl}
+\toprule
+Original category & Encounters & Binary target\\
+\midrule
+\texttt{<30} & 11,357 (11.16\%) & 1 (early readmission)\\
+\texttt{>30} & 35,545 (34.93\%) & 0\\
+\texttt{NO} & 54,864 (53.91\%) & 0\\
+Class 0 total & 90,409 (88.84\%) & 0\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.98}{Distribution of Binary Target - Early Readmission.png}
+\captionof{figure}{Binary target (early readmission $<$30 days versus not) in the full dataset ($n=101{,}766$), the modeling cohort ($n=99{,}343$), and the held-out test set ($n=19{,}948$). Early readmission is the minority class at every stage (11.16\%, 11.39\%, and 11.33\%).}
+\label{fig:binary}
+
+Early readmission is a minority outcome at every stage. A classifier that predicts ``no early readmission'' for every encounter would be correct about 89\% of the time while being clinically useless, which is why Accuracy is not the headline metric. The original three-category distribution (Figure~\ref{fig:outcome}) is descriptive only and is not the modeling target.
+
+\subsection{Age distribution}
+
+The cohort is concentrated among older adults. The largest 10-year band is 70--80 years with 26,068 encounters, followed by 60--70 years with 22,483 and 80--90 years with 17,197.
+
+\fig{0.78}{Age Distribution of Hospital Encounters.png}
+\captionof{figure}{Age distribution of hospital encounters in 10-year bands.}
+\label{fig:age}
+
+\begin{table}[H]
+\centering
+\caption{Early-readmission rates by age group.}
+\label{tab:age}
+\begin{tabular}{lrrr}
+\toprule
+Age band & Encounters & Early readmissions & Rate\\
+\midrule
+{[0--10)} & 161 & 3 & 1.86\%\\
+{[10--20)} & 691 & 40 & 5.79\%\\
+{[20--30)} & 1,657 & 236 & 14.24\%\\
+{[30--40)} & 3,775 & 424 & 11.23\%\\
+{[40--50)} & 9,685 & 1,027 & 10.60\%\\
+{[50--60)} & 17,256 & 1,668 & 9.67\%\\
+{[60--70)} & 22,483 & 2,502 & 11.13\%\\
+{[70--80)} & 26,068 & 3,069 & 11.77\%\\
+{[80--90)} & 17,197 & 2,078 & 12.08\%\\
+{[90--100)} & 2,793 & 310 & 11.10\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.78}{Early Readmission Rate by Age Group.png}
+\captionof{figure}{Early-readmission rate by age group. Most adult groups lie near 10--12\%; the apparent peak in ages 20--30 is based on a comparatively small subgroup.}
+\label{fig:agerate}
+
+The broad similarity of adult rates suggests that age alone is not a strong descriptive separator in this dataset. The unusually high percentage in the 20--30 band should not be interpreted as an age effect because its denominator is much smaller than those of the older groups.
+
+\subsection{Prior utilization and length of stay}
+
+Prior inpatient utilization shows the clearest descriptive separation. Mean prior inpatient visits were 1.22 among early-readmission encounters compared with 0.84 among later-readmission encounters and 0.38 among encounters without readmission.
+
+\fig{0.78}{Prior Inpatient Visits by Readmission Group.png}
+\captionof{figure}{Prior inpatient visits by readmission outcome. Early-readmission encounters are shifted toward higher previous inpatient utilization.}
+\label{fig:inpatient}
+
+Length of stay is less discriminative. The mean stay was 4.77 days for early readmission, 4.50 days for later readmission, and 4.25 days for no readmission.
+
+\fig{0.78}{Time in Hospital by Readmission Group.png}
+\captionof{figure}{Time in hospital by readmission outcome. The distributions overlap substantially despite a small difference in means.}
+\label{fig:los}
+
+\subsection{Standardized differences}
+
+The absolute SMD for \texttt{number\_inpatient} was 0.415, substantially larger than the other numeric variables:
+\begin{table}[H]
+\centering
+\caption{Absolute standardized mean differences between early readmission and all other encounters.}
+\label{tab:smd}
+\begin{tabular}{lr}
+\toprule
+Variable & Absolute SMD\\
+\midrule
+number\_inpatient & \textbf{0.415}\\
+number\_diagnoses & 0.163\\
+number\_emergency & 0.157\\
+time\_in\_hospital & 0.140\\
+num\_medications & 0.122\\
+num\_lab\_procedures & 0.065\\
+number\_outpatient & 0.059\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.78}{Standardized Differences - Early Readmission vs Other Encounters.png}
+\captionof{figure}{Absolute standardized mean differences. Prior inpatient utilization is the strongest numeric separator.}
+\label{fig:smd}
+
+An SMD of 0.415 represents a small-to-moderate standardized difference. Importantly, it does not imply that the distributions are non-overlapping. The visual distribution in Figure~\ref{fig:inpatient} confirms substantial overlap.
+
+\subsection{Correlation structure}
+
+The numeric utilization variables show weak-to-moderate pairwise correlations. The largest Pearson correlation is 0.47 between \texttt{time\_in\_hospital} and \texttt{num\_medications}; the correlation between \texttt{time\_in\_hospital} and \texttt{num\_lab\_procedures} is 0.32, and between prior inpatient and emergency visits is 0.27.
+
+\fig{0.78}{Correlation Between Numeric Utilization Variables.png}
+\captionof{figure}{Pearson correlation matrix among numeric utilization variables. No pair shows a strong linear correlation.}
+\label{fig:corr}
+
+Because several variables are counts with many zeros and skewed distributions, Pearson correlation should be treated as a descriptive screening statistic rather than a complete description of dependence.
+
+\subsection{Categorical associations}
+
+The largest Cramér's $V$ was observed for discharge disposition:
+\[
+V_{\mathrm{discharge}}=0.125.
+\]
+Other values were much smaller.
+
+\begin{table}[H]
+\centering
+\caption{Cramér's $V$ for selected categorical variables and early readmission.}
+\label{tab:cramer}
+\begin{tabular}{lr}
+\toprule
+Variable & Cramér's $V$\\
+\midrule
+discharge\_disposition & \textbf{0.125}\\
+insulin & 0.043\\
+age & 0.034\\
+diabetesMed & 0.027\\
+admission\_source & 0.023\\
+change & 0.019\\
+A1Cresult & 0.019\\
+admission\_type & 0.016\\
+race & 0.016\\
+max\_glu\_serum & 0.012\\
+gender & 0.003\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The discharge disposition association is informative for prediction but difficult to interpret clinically because it combines clinical destination with administrative categories. It should not be interpreted as evidence that a particular discharge destination causes readmission.
+
+\subsection{Race and gender}
+
+Raw early-readmission rates were similar for the largest race groups.
+
+\begin{table}[H]
+\centering
+\caption{Early-readmission rate by race.}
+\label{tab:race}
+\begin{tabular}{lrr}
+\toprule
+Race & Encounters & Early-readmission rate\\
+\midrule
+Caucasian & 76,099 & 11.29\%\\
+African American & 19,210 & 11.22\%\\
+Hispanic & 2,037 & 10.41\%\\
+Asian & 641 & 10.14\%\\
+Other & 1,506 & 9.63\%\\
+Missing & 2,273 & 8.27\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.78}{Early Readmission Rate by Race.png}
+\captionof{figure}{Raw early-readmission rates by race. Smaller groups have wider sampling uncertainty that is not shown in the descriptive plot.}
+\label{fig:race}
+
+Female encounters had an early-readmission rate of 11.25\%, compared with 11.06\% among male encounters.
+
+\fig{0.72}{Early Readmission Rate by Gender.png}
+\captionof{figure}{Early-readmission rate by gender. The raw rates are very similar.}
+\label{fig:gender}
+
+\subsection{Primary diagnosis group}
+
+Among sizeable diagnosis groups, Diabetes had the highest early-readmission rate at 12.98\% (8,757 encounters), followed by Injury at 12.25\%. Respiratory and Musculoskeletal groups had rates of 9.73\% and 9.50\%, respectively.
+
+\fig{0.78}{Early Readmission Rate by Primary Diagnosis Group.png}
+\captionof{figure}{Early-readmission rate by primary diagnosis group. The very small Missing group should not be interpreted.}
+\label{fig:diagnosis}
+
+These group-level rates are descriptive. Diagnosis category is a summary of coded information and may not capture clinical severity, disease stage, laboratory status, or social determinants of health.
+
+% ============================================================
+\section{Predictive Modeling Results}
+% ============================================================
+
+\subsection{Stage-A model comparison}
+
+At the default 0.50 threshold, the four models showed relatively close ROC--AUC values, from 0.659 to 0.683.
+
+\begin{table}[H]
+\centering
+\small\setlength{\tabcolsep}{3.5pt}
+\caption{Stage-A model performance at the default probability threshold of 0.50.}
+\label{tab:default}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Model & Accuracy & Bal. Acc. & Recall & Precision & F1 & ROC--AUC & PR--AUC\\
+\midrule
+Logistic Regression & 0.655 & 0.617 & 0.568 & 0.178 & 0.272 & 0.664 & 0.221\\
+Decision Tree & 0.590 & 0.620 & 0.659 & 0.167 & 0.267 & 0.659 & 0.212\\
+Random Forest & 0.643 & 0.626 & 0.603 & 0.180 & 0.277 & 0.674 & 0.207\\
+XGBoost & 0.663 & 0.634 & 0.598 & 0.188 & 0.287 & \textbf{0.683} & \textbf{0.238}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+XGBoost has the strongest ROC--AUC, PR--AUC, balanced accuracy, and F1 at the default threshold. However, the differences are modest, so the results should not be interpreted as evidence of a large superiority between algorithms.
+
+\subsection{Recall-oriented operating points}
+
+Threshold tuning produces a different clinical operating point.
+
+\begin{table}[H]
+\centering
+\small\setlength{\tabcolsep}{3.5pt}
+\caption{Stage-A performance at thresholds selected by validation-set $F_2$.}
+\label{tab:tuned}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Model & Thr. & Acc. & Bal. Acc. & Recall & Precision & F1 & ROC--AUC & PR--AUC\\
+\midrule
+Logistic Regression & 0.39 & 0.448 & 0.597 & 0.791 & 0.145 & 0.245 & 0.664 & 0.221\\
+Decision Tree & 0.38 & 0.444 & 0.593 & 0.786 & 0.143 & 0.243 & 0.659 & 0.212\\
+Random Forest & 0.45 & 0.426 & 0.602 & \textbf{0.830} & 0.145 & 0.247 & 0.674 & 0.207\\
+XGBoost & 0.41 & 0.474 & \textbf{0.615} & 0.797 & \textbf{0.152} & \textbf{0.255} & \textbf{0.683} & \textbf{0.238}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The result demonstrates a central operational trade-off. For XGBoost, moving from the default threshold to 0.41 raises Recall from 0.598 to 0.797, but Precision remains only 0.152 and Accuracy falls to 0.474. Thus approximately six out of ten test encounters would be flagged at this operating point.
+
+\subsection{The decision threshold: effect on XGBoost}
+
+A probabilistic classifier outputs a risk score; the decision threshold determines the score above which an encounter is flagged as likely early readmission. With an outcome prevalence of about 11\%, the default cut-off of 0.50 is a poor operating point when missing a true early readmission is costlier than a false alarm. The threshold was therefore selected explicitly: for each model, the value in $[0.05,\,0.50]$ (step 0.01) that maximizes $F_2$ on a patient-separated validation set was chosen, the model was refit on the full training set, and the test set was never used to choose the threshold (no leakage). For XGBoost the selected threshold was 0.41. Figure~\ref{fig:threshold} and Table~\ref{tab:threshold} compare the stage-A XGBoost model on the held-out test set with and without this threshold.
+
+\fig{0.95}{XGBoost - With vs Without Threshold.png}
+\captionof{figure}{Stage-A XGBoost on the held-out test set: validation-tuned threshold 0.41 versus the default 0.50. ROC--AUC and PR--AUC do not depend on the threshold; the threshold raises Recall from 0.598 to 0.797 at the cost of Precision and Accuracy.}
+\label{fig:threshold}
+
+\begin{table}[H]
+\centering
+\caption{Effect of the decision threshold on stage-A XGBoost (held-out test set). Values marked $^{\dagger}$ are derived from the reported Recall, Precision and test-set size.}
+\label{tab:threshold}
+\small
+\begin{tabular}{p{5.6cm}rrr}
+\toprule
+Metric & Threshold 0.41 & Default 0.50 & Change\\
+\midrule
+Recall (\texttt{<30}) & \textbf{0.797} & 0.598 & +0.199 (+33\% relative)\\
+Precision (\texttt{<30}) & 0.152 & 0.188 & $-0.036$\\
+F1 (\texttt{<30}) & 0.255 & 0.287 & $-0.032$\\
+Balanced accuracy & 0.615 & 0.634 & $-0.019$\\
+Accuracy & 0.474 & 0.663 & $-0.189$\\
+ROC--AUC & 0.683 & 0.683 & 0 (threshold-independent)\\
+PR--AUC & 0.238 & 0.238 & 0 (threshold-independent)\\
+$F_2$ (derived)$^{\dagger}$ & 0.431 & 0.416 & +0.015\\
+True early readmissions caught (of 2,260) & 1,802 & $\approx$1,351$^{\dagger}$ & $\approx$+451\\
+Encounters flagged (of 19,948) & 11,846 (59.4\%) & $\approx$7,200 ($\approx$36\%)$^{\dagger}$ & $\approx$+4,650\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Derived values carry a rounding error of about $\pm0.5\%$ of the base. Moving from 0.50 to 0.41 does not change how well the model \emph{ranks} patients (ROC--AUC and PR--AUC are identical); it changes where the alarm is set. The threshold recovers about 450 additional true early readmissions (Recall 0.598 $\rightarrow$ 0.797) at the price of about ten additional alerts per additional case caught (derived). It is the single design choice that most improves the model's ability to catch the cases that matter, and it is also what drives Accuracy down, which is why Accuracy is not used to judge the model. The appropriate threshold depends on review capacity: a hospital that can review fewer alerts should choose a higher threshold.
+
+\subsection{Confusion matrices}
+
+The confusion matrices make the trade-off concrete.
+
+\fig{0.82}{Confusion Matrices - All Models.png}
+\captionof{figure}{Confusion matrices at recall-oriented thresholds. High Recall is achieved at the cost of a large number of false-positive alerts.}
+\label{fig:cm}
+
+For tuned XGBoost, the test set contains 1,802 true positives, 458 false negatives, 10,044 false positives, and 7,644 true negatives. The resulting FNR is:
+\[
+\mathrm{FNR}=\frac{458}{458+1802}=0.203.
+\]
+The high number of false positives means that a clinical implementation would require substantial review capacity.
+
+\subsection{Feature importance}
+
+Across the tree-based models, prior inpatient utilization and discharge disposition consistently appear among the strongest predictors.
+
+\begin{table}[H]
+\centering
+\caption{Leading model-specific predictors.}
+\label{tab:features}
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+Model & Strongest reported features\\
+\midrule
+Decision Tree & \texttt{number\_inpatient} (0.425); discharge disposition ``Home'' (0.135); ``Rehabilitation'' (0.055)\\
+Random Forest & \texttt{number\_inpatient} (0.132); \texttt{discharge\_disposition\_id} (0.054); ``Home'' (0.051)\\
+XGBoost & ``Home'' (0.020); \texttt{number\_inpatient} (0.019); ``Rehabilitation'' (0.009)\\
+Logistic Regression & Rare diagnosis-code coefficients, including \texttt{diag\_2\_136} and \texttt{diag\_3\_537}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\fig{0.88}{Top Features - All Models.png}
+\captionof{figure}{Top features and coefficients across the four stage-A models. Importance indicates model contribution, not causal effect.}
+\label{fig:features}
+
+The Logistic Regression result deserves caution because the very wide one-hot matrix contains rare diagnosis levels. Large coefficients for rare categories can be unstable and should not be interpreted as robust clinical risk factors without replication.
+
+\subsection{Subgroup error analysis}
+
+\begin{table}[H]
+\centering
+\caption{Stage-A subgroup FNR gaps at recall-oriented thresholds.}
+\label{tab:fairness}
+\begin{tabular}{lrrr}
+\toprule
+Model & Race FNR gap & Age FNR gap & Gender FNR gap\\
+\midrule
+Logistic Regression & 0.288 & 0.910 & 0.006\\
+Decision Tree & 0.083 & 0.933 & 0.031\\
+Random Forest & 0.118 & 0.967 & 0.024\\
+XGBoost & 0.112 & 0.885 & 0.029\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.84}{FNR Gap Across Patient Subgroups.png}
+\captionof{figure}{Difference between maximum and minimum FNR within race, gender, and age subgroups.}
+\label{fig:fairness}
+
+The age-band gaps are numerically large, but the underlying positive counts are small. For example, the reproduced test split contains only 27 encounters and one early-readmission case in the [0--10) group, and 119 encounters with six positive cases in the [10--20) group. An FNR of 1.0 can therefore arise from a single missed event. Similarly, the ``Missing'' gender category contains one encounter and no positives, making its FNR undefined in a substantive clinical sense. These findings demonstrate the importance of reporting subgroup sample sizes alongside disparity metrics.
+
+\subsubsection{Age-band disparity and its statistical support}
+
+The age-band results are the most serious fairness finding of the project. All four models miss every early readmission in at least one age band (FNR $=1.00$), and the FNR gap across age bands is 0.885--0.967. Table~\ref{tab:agepos} shows the number of test encounters and true early readmissions per band.
+
+\begin{table}[H]
+\centering
+\caption{Held-out test set: encounters and true early readmissions (positives) per age band. Derived by re-running the grouped split with \texttt{random\_state=123}; totals match the notebook.}
+\label{tab:agepos}
+\begin{tabular}{lrr}
+\toprule
+Age band & Test encounters & True early readmissions\\
+\midrule
+{[0--10)} & 27 & \textbf{1}\\
+{[10--20)} & 119 & \textbf{6}\\
+{[20--30)} & 396 & 78\\
+{[30--40)} & 743 & 83\\
+{[40--50)} & 1,837 & 172\\
+{[50--60)} & 3,387 & 298\\
+{[60--70)} & 4,504 & 513\\
+{[70--80)} & 5,127 & 611\\
+{[80--90)} & 3,281 & 438\\
+{[90--100)} & 527 & 60\\
+\midrule
+Total & 19,948 & 2,260\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fig{0.98}{Age Subgroup Disparity and Support.png}
+\captionof{figure}{Age-subgroup disparity and its statistical support. Left: number of true early readmissions per age band in the test set (red $=$ fewer than 10). Right: FNR gap (maximum minus minimum) for race, gender, and age for stage-A XGBoost at threshold 0.41.}
+\label{fig:agesupport}
+
+With only 1 and 6 positives in the two youngest bands, an FNR of 1.00 can arise from a single missed case, so the \emph{exact magnitude} of the gap is uncertain, and subgroup-level confidence intervals were not computed. This uncertainty qualifies the size of the estimate; it does not remove the finding. The model gives no evidence of being able to detect early readmissions in patients under 20, and the notebook's own figure (Figure~\ref{fig:fairness}) already labels this a critical disparity. The practical consequences are:
+\begin{enumerate}[leftmargin=1.2cm]
+\item the model should not be applied to patients under 20 without separate validation;
+\item age-band Recall should be reported with confidence intervals;
+\item age-aware calibration or age-specific thresholds should be considered;
+\item more cases in these bands should be collected or pooled.
+\end{enumerate}
+Race gaps are moderate (largest for Logistic Regression, 0.288) and gender gaps are small (0.006--0.031). The \texttt{min\_Recall}\,$=0.000$ reported for gender comes from a \texttt{Missing} gender group of one encounter with no positives (scored 0 by \texttt{zero\_division=0}) and is not a model failure.
+
+
+\subsection{Stage-B final XGBoost}
+
+The second-stage XGBoost model was optimized using grouped randomized cross-validation. Its best parameter combination yielded cross-validated $F_2=0.406$. When evaluated at the fixed 0.50 threshold on the held-out test set, it achieved:
+
+\begin{table}[H]
+\centering
+\caption{Final hyperparameter-searched XGBoost on the held-out test set.}
+\label{tab:finalxgb}
+\begin{tabular}{lr}
+\toprule
+Metric & Value\\
+\midrule
+Accuracy & 0.640\\
+Recall & 0.619\\
+Precision & 0.181\\
+F1 & 0.280\\
+ROC--AUC & $\approx 0.68$\\
+Macro-average precision & 0.555\\
+Macro-average recall & 0.631\\
+Macro-average F1 & 0.520\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The stage-B result should not be confused with the stage-A XGBoost at threshold 0.41. They are different model configurations and operating points. Stage A is useful for illustrating the Recall--Precision trade-off; stage B is the final hyperparameter-searched configuration reported by the project.
+
+\fig{0.60}{ROC Curve - XGBoost.png}
+\captionof{figure}{ROC curve for the final XGBoost model. The reported discrimination is modest, with ROC--AUC approximately 0.68.}
+\label{fig:roc}
+
+% ============================================================
+\section{Key Findings}
+
+\begin{enumerate}[leftmargin=1.2cm]
+\item \textbf{The task is binary and imbalanced:} 11.16\% of the 101,766 encounters were followed by readmission within 30 days (11.39\% in the 99,343-encounter modeling cohort; 11.33\% in the test set).
+\item \textbf{The decision threshold is the model's key strength:} XGBoost at the validation-tuned threshold of 0.41 reaches Recall 0.797 versus 0.598 at the default 0.50, with identical ROC--AUC (0.683) and PR--AUC (0.238). The price is Precision 0.152 (versus 0.188) and Accuracy 0.474 (versus 0.663).
+\item \textbf{Severe age-subgroup disparity:} the FNR gap across age bands is 0.885--0.967 in all four models, and at least one band has FNR $=1.00$. It is the largest fairness problem in the project; the affected bands hold only 1 and 6 positives, so its exact size is uncertain.
+\item \textbf{Prior inpatient utilization is the clearest signal:} \texttt{number\_inpatient} has the largest SMD (0.415); mean prior inpatient visits are 1.22 for \texttt{<30} versus 0.38 for \texttt{NO}. It is also the top or second feature in all tree-based models.
+\item \textbf{Most other associations are weak:} all Cramér's $V$ values are $\le 0.125$; grouped-diagnosis associations are about 0.02--0.03.
+\item \textbf{Discharge disposition is informative but hard to interpret} ($V=0.125$; prominent in all tree models) because it mixes clinical destination with administrative categories.
+\item \textbf{Accuracy is misleading:} raising Recall to about 0.80 reduces Accuracy to about 0.43--0.47 and leaves Precision around 0.14--0.15.
+\item \textbf{Models are close in discriminative power:} ROC--AUC 0.659--0.683; XGBoost is best on ROC--AUC (0.683) and PR--AUC (0.238).
+\item \textbf{A hyperparameter-searched XGBoost} (supplementary, threshold 0.50) reaches Recall 0.619, Precision 0.181, F1 0.280, and ROC--AUC $\approx 0.68$.
+\item \textbf{Race and gender gaps are moderate and small,} respectively (FNR gap 0.083--0.288 and 0.006--0.031).
+\item \textbf{Patient-level leakage was controlled:} no patient appears in both training and test sets, cross-validation was patient-grouped, and the threshold was chosen without the test set.
+\end{enumerate}
+
+% ============================================================
+\section{Clinical Interpretation}
+% ============================================================
+
+\subsection{Prior inpatient utilization}
+
+The most consistent signal is previous inpatient utilization. The effect-size analysis, group means, and tree-based feature importance all point in the same direction. This is clinically plausible as a marker of complex or unstable healthcare needs, but the observational data cannot establish that prior hospitalization itself causes future readmission.
+
+For operational use, prior inpatient utilization may therefore be considered a risk-stratification marker. A care-management team could use it as one component of a broader review process, particularly when combined with discharge planning and other clinical information not fully represented in the dataset.
+
+\subsection{Discharge disposition}
+
+Discharge disposition has the largest categorical association and is prominent in all tree-based models. Nevertheless, it should be interpreted cautiously. Disposition categories can encode the administrative endpoint of a hospitalization and may reflect information available very late in the care pathway. They can also mix clinical destination with coding structure. Consequently, feature importance does not mean that changing discharge destination would necessarily change readmission risk.
+
+\subsection{The practical meaning of precision}
+
+A Precision of 0.152 at the recall-oriented XGBoost threshold means that only about 15 of every 100 flagged encounters are early readmissions in the held-out test set. The remaining alerts are false positives. This is not automatically unacceptable in a screening system, but it determines the workload required from nurses, care coordinators, or clinicians.
+
+At the stage-A XGBoost threshold of 0.41, 11,846 of 19,948 test encounters were flagged, corresponding to 59.4\% of the test set. This operating point captures 79.7\% of true early readmissions but produces a very large review queue. A real deployment would therefore need an explicit capacity constraint and prospective evaluation of the value of each alert.
+
+\paragraph{Lift over the base rate (derived).} Test prevalence is 11.33\%. The stage-A XGBoost precision of 0.152 at threshold 0.41 is about 1.3 times the base rate, whereas 0.188 at the default 0.50 is about 1.7 times, and the stage-B model's 0.181 is about 1.6 times. The threshold therefore buys Recall, not Precision: the statistical signal is real, but it is operationally costly. At the default threshold the model flags roughly 36\% of encounters (derived) and catches 59.8\% of early readmissions, compared with 59.4\% flagged and 79.7\% caught at 0.41.
+
+\subsection{Model use as decision support}
+
+The model should be understood as a ranking or triage instrument. It does not diagnose a condition, prescribe treatment, or establish that an intervention will prevent readmission. Human review remains necessary, particularly because the dataset is historical, administrative, and incomplete with respect to clinical severity and social context.
+
+% ============================================================
+\section{Fairness, Reliability, and Uncertainty}
+% ============================================================
+
+Algorithmic evaluation in healthcare requires more than a single overall metric. A model can have acceptable aggregate discrimination while missing cases disproportionately in a subgroup. The present project therefore reports FNR gaps for race, gender, and age.
+
+Race gaps ranged from 0.083 to 0.288 across stage-A models, whereas gender gaps ranged from 0.006 to 0.031. Age gaps were much larger, from 0.885 to 0.967. However, the age results are dominated by small numbers of positive cases. This is an important distinction: a large observed disparity is not equivalent to strong evidence of systematic discrimination. Nevertheless, the finding is not dismissed: because every model misses all early readmissions in at least one age band, the models should not be used for the affected patients without separate validation.
+
+Several forms of uncertainty remain unquantified. The project used one grouped train/test split, so confidence intervals for performance metrics were not calculated. Repeated patient-grouped splits or bootstrap confidence intervals would provide a better description of sampling variability. Calibration curves and expected calibration error would also be useful because ROC--AUC measures ranking rather than whether predicted probabilities correspond to observed risks.
+
+A clinically mature evaluation would additionally examine:
+\begin{enumerate}[leftmargin=1.2cm]
+\item calibration overall and within important subgroups;
+\item confidence intervals for Recall, Precision, ROC--AUC, and PR--AUC;
+\item decision-curve analysis or other net-benefit measures;
+\item temporal validation on more recent encounters;
+\item external validation in a separate health system;
+\item clinically meaningful subgroup definitions with adequate positive-event counts.
+\end{enumerate}
+
+% ============================================================
+\section{Limitations}
+% ============================================================
+
+\begin{enumerate}[leftmargin=1.2cm]
+\item \textbf{Age-subgroup disparity (critical):} All four models miss every early readmission in at least one age band (FNR $=1.00$; gap 0.885--0.967). The affected bands are the youngest and contain 1 and 6 positives, so the magnitude is uncertain, but the model must not be used for these patients without separate validation.
+\item \textbf{Historical data:} The source data end in 2008. Clinical pathways, coding, medications, and healthcare utilization have changed substantially.
+\item \textbf{Single held-out split:} Main test results come from one patient-grouped partition. Repeated splitting and confidence intervals were not performed.
+\item \textbf{Small subgroups:} Several age and race groups contain few positive events, limiting the reliability of subgroup FNR estimates.
+\item \textbf{Outcome capture:} Readmissions outside the source hospital system may not be observed.
+\item \textbf{Missing clinical context:} Social determinants, detailed laboratory trajectories, disease severity, and clinician assessment are incompletely represented.
+\item \textbf{Feature representation:} Nominal administrative IDs were partly treated as numeric, and raw high-cardinality diagnosis codes were one-hot encoded. These choices may add noise.
+\item \textbf{Missingness:} Some fields have very high missingness. Treating ``Missing'' as a category may preserve information but can also encode data-collection processes.
+\item \textbf{No formal causal analysis:} Associations and feature importances do not establish causal relationships.
+\item \textbf{Moderate discrimination:} ROC--AUC near 0.68 indicates limited discrimination rather than a highly accurate clinical prediction tool.
+\item \textbf{High alert burden:} Recall-oriented thresholds substantially increase false positives and therefore require operational resources.
+\item \textbf{Incomplete final-model subgroup evaluation:} Fairness metrics were computed for stage-A models; the final stage-B model was not re-evaluated for all subgroup metrics.
+\item \textbf{No prospective clinical evaluation:} The analysis does not measure whether using the model would improve outcomes, reduce readmissions, or reduce healthcare utilization.
+\item \textbf{Subgroup scoring convention:} Groups with zero positives are scored Recall $=0$ (\texttt{zero\_division=0}), which inflates apparent gaps; FNR is undefined for those groups.
+\item \textbf{Fairness scope:} Fairness was assessed only for the stage-A models, only with Recall/FNR, and only for race, gender, and age; calibration and predictive-parity measures were not examined.
+\item \textbf{Threshold for the supplementary model:} The stage-B XGBoost was evaluated at a fixed 0.50 threshold; its threshold was not re-tuned, and PR--AUC and subgroup metrics were not recomputed for it. The 0.41 threshold applies to the stage-A model.
+\item \textbf{Threshold uncertainty:} The threshold was chosen on a single validation split; its stability across splits and the confidence interval of the resulting Recall were not computed.
+\item \textbf{Representation:} The sample is predominantly Caucasian (74.78\%) and African American (18.88\%); other groups are small.
+\end{enumerate}
+
+% ============================================================
+\section{Practical Implications}
+% ============================================================
+
+The results support several cautious implications for a future clinical analytics workflow.
+
+First, prior inpatient utilization can be incorporated into a post-discharge review queue because it is a reproducible signal across descriptive and machine-learning analyses. Second, discharge disposition can contribute to risk stratification, but should be interpreted in conjunction with clinical context rather than as a modifiable causal variable. Third, the operating threshold should be chosen according to the available capacity for human review rather than by maximizing a generic metric.
+
+A practical workflow could be structured as:
+\[
+\begin{gathered}
+\text{Hospital encounter}
+\rightarrow
+\text{risk score}
+\rightarrow
+\text{capacity-based threshold}\\
+\rightarrow
+\text{human clinical review}
+\rightarrow
+\text{appropriate follow-up}.
+\end{gathered}
+\]
+The model should not automatically initiate treatment or deny services.
+
+\subsection{Use as triage, not automation}
+
+With a Precision of roughly 15--18\%, most alerts will be false alarms, so the model is better suited to prioritizing a manual review queue than to triggering automatic interventions. The threshold is an operational lever: at 0.41 the model flags about 59\% of discharges (11,846 of 19,948) and catches 79.7\% of early readmissions, whereas at the default 0.50 it flags roughly 36\% (derived) and catches 59.8\%; it should be chosen from review capacity and the relative cost of a missed readmission. Patients with several previous inpatient visits stand out consistently, so follow-up resources (care-coordination calls, home-health referral, early follow-up appointments) could be prioritized for this group; the data show association, not that these actions would reduce readmission.
+
+\subsection{Conditions under which the model should not be used}
+
+The model should not be deployed without addressing age: all four models miss every early readmission in at least one age band. Patients under 20 should be excluded or separately validated, age-band Recall should be reported with confidence intervals, and age-aware calibration or thresholds should be considered before any pilot. Finally, because the data end in 2008, any real deployment would require revalidation on current data.
+
+Before implementation, the workflow should be tested prospectively. A useful pilot would measure alert volume, clinician acceptance, time to review, follow-up completion, readmission outcomes, calibration, and subgroup performance. Any change in clinical outcome should be evaluated with an appropriate study design rather than inferred from predictive performance alone.
+
+% ============================================================
+\section{Reproducibility and Computational Environment}
+% ============================================================
+
+The project was implemented in Python using pandas and NumPy for data handling; SciPy for statistical computations; scikit-learn for preprocessing, splitting, modeling, cross-validation, and metrics; XGBoost for gradient boosting; and Matplotlib/Seaborn for visualization.
+
+\begin{table}[H]
+\centering
+\caption{Computational environment and analytical components.}
+\label{tab:software}
+\begin{tabularx}{\textwidth}{lY}
+\toprule
+Category & Tools\\
+\midrule
+Programming & Python 3.13.5 reported in the original environment\\
+Data handling & pandas, NumPy\\
+Statistics & SciPy, contingency-table methods, effect sizes\\
+Machine learning & scikit-learn, XGBoost\\
+Validation & GroupShuffleSplit, StratifiedGroupKFold, RandomizedSearchCV\\
+Visualization & Matplotlib, Seaborn\\
+Environment & Jupyter Notebook / Anaconda\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The original project uses a relative data path and saves figures to the \texttt{Figures/} directory. Exact numerical reproduction can vary slightly with library versions, but the principal split seed is 123.
+
+The random seed is 123 for the train/test split, the validation split, the models, and the hyperparameter search. Package versions were not recorded in the original project and should be pinned when the environment is frozen. The notebook reads data with a Windows-style relative path, which must be changed on macOS or Linux, and it should be run from inside its own folder so that relative paths resolve. Expected checkpoints are a raw data table of $101{,}766\times 50$, a modeling cohort of 99,343 encounters, a training/test split of 79,395/19,948 encounters, and zero patient overlap.
+
+An interactive HTML dashboard (Chart.js, with age and gender filters) accompanies the project. It shows the binary outcome distribution, the two XGBoost threshold charts (0.41 and the default 0.50, evaluated on the held-out test set and therefore not affected by the filters), and an age-fairness alert card summarizing the FNR gaps by race, gender, and age for all four models.
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+This study presents a complete medical data-science workflow for predicting 30-day readmission among hospitalized patients with diabetes. The analysis combines data-quality review, descriptive epidemiology, interpretable effect sizes, leakage-aware machine learning, threshold optimization, and subgroup error analysis.
+
+The strongest recurring signal is prior inpatient utilization, while discharge disposition provides the largest categorical association and a prominent model feature. Nevertheless, most individual associations are small, and the predictive models provide only modest discrimination. XGBoost achieved ROC--AUC of approximately 0.68, and recall-oriented thresholding substantially increased sensitivity at the cost of a large false-positive burden.
+
+The study also demonstrates why healthcare prediction should not be reduced to a single accuracy number. Patient-level splitting prevents an important form of leakage, PR--AUC is informative under class imbalance, and subgroup metrics require sample-size context. The age-band fairness results illustrate how apparently dramatic disparity estimates can be unstable when positive cases are rare.
+
+The appropriate interpretation is therefore conservative: the model can support prioritization and human review, but it should not be treated as an autonomous clinical decision-maker. Contemporary external validation, calibration, uncertainty quantification, subgroup evaluation, and prospective clinical impact assessment are necessary steps before any real-world use.
+
+% ============================================================
+\section*{Data Availability}
+% ============================================================
+The analysis uses the publicly available Diabetes 130-US Hospitals for Years 1999--2008 dataset distributed through the UCI Machine Learning Repository under a CC BY 4.0 license. The supplied project archive contains the data files, notebook, and generated figures used for this manuscript.
+
+\section*{Ethics and Clinical Use Statement}
+This is a secondary analysis of a de-identified public dataset. No individual-level clinical recommendation is made by this manuscript. The predictive results are presented for methodological and educational analysis and should not be used directly for patient care without independent clinical validation and appropriate governance.
+
+% ============================================================
+\appendix
+\section{Detailed Model Error Counts}
+% ============================================================
+
+\begin{table}[H]
+\centering
+\caption{Error counts at stage-A recall-oriented thresholds.}
+\label{tab:errorcounts}
+\begin{tabular}{lrrrrr}
+\toprule
+Model & TP & FN & FP & TN & FNR\\
+\midrule
+Logistic Regression & 1,787 & 473 & 10,539 & 7,149 & 0.209\\
+Decision Tree & 1,776 & 484 & 10,608 & 7,080 & 0.214\\
+Random Forest & 1,876 & 384 & 11,069 & 6,619 & 0.170\\
+XGBoost & 1,802 & 458 & 10,044 & 7,644 & 0.203\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Consistency and Interpretation Audit}
+
+The supplied project contains several outputs that represent different analytical stages. The manuscript intentionally distinguishes them rather than forcing a single number into all sections.
+
+\begin{table}[H]
+\centering
+\caption{Key analytical distinctions retained in this manuscript.}
+\label{tab:audit}
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+Topic & Stage A & Stage B / final\\
+\midrule
+XGBoost parameters & Fixed 250-tree configuration & RandomizedSearchCV-selected configuration\\
+Threshold & Validation-tuned, 0.41 for XGBoost & Fixed at 0.50\\
+XGBoost Recall & 0.797 & 0.619\\
+XGBoost Precision & 0.152 & 0.181\\
+XGBoost ROC--AUC & 0.683 & approximately 0.68\\
+Purpose & Compare operating points & Report final searched model\\
+Fairness metrics & Computed & Not fully recomputed\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+This distinction prevents the reader from interpreting two different model configurations as if they were one experiment.
+
+\subsection*{Discrepancies between notebook commentary and executed outputs}
+
+During preparation, the notebook's written commentary was compared with its executed outputs. The executed outputs (saved cell results) are treated as the most reliable source.
+
+{\small
+\begin{longtable}{p{0.5cm}p{8.3cm}p{6.4cm}}
+\caption{Consistency audit of the source notebook.}\label{tab:audit2}\\
+\toprule
+\# & Issue and what the executed output shows & Resolution used\\
+\midrule
+\endfirsthead
+\toprule
+\# & Issue and what the executed output shows & Resolution used\\
+\midrule
+\endhead
+1 & The ``Selected Model --- XGBoost'' text states that XGBoost had the highest Recall (0.800) at threshold 0.50, with ROC--AUC 0.684. At 0.50, XGBoost Recall is 0.598 and Decision Tree has the highest (0.659); after tuning, Random Forest has the highest Recall (0.830); XGBoost ROC--AUC is 0.683. No executed output contains Recall 0.800 for XGBoost (it may come from an earlier run). & XGBoost is justified by best ROC--AUC, PR--AUC, balanced accuracy, and F1, not by highest Recall.\\
+2 & The Q9 commentary describes the ``champion'' XGBoost at threshold 0.41 with Recall 0.797, but the final cells refit XGBoost via RandomizedSearchCV and evaluate it at threshold 0.50 (Recall 0.619). & Reported as stage A (fixed hyperparameters, tuned threshold 0.41) and stage B (searched hyperparameters, threshold 0.50, supplementary).\\
+3 & Fairness commentary describes ``severe algorithmic bias'' by age and \texttt{min\_Recall}\,$=0.000$ for gender. Age FNR gap is 0.885--0.967 with FNR $=1.00$ in at least one band in all four models, and those bands hold 1 and 6 positives. The gender zero arises from a one-encounter \texttt{Missing} group with no positives. Fairness was computed for stage-A models only. & Age disparity reported as a critical finding with its small-sample uncertainty stated; the gender zero explained as a data artefact.\\
+4 & Two cohort sizes and prevalences appear: EDA uses 101,766 encounters (11.16\%); modeling uses 99,343 after removing 2,423 death/hospice discharges (11.39\%). & Both reported and labelled by stage.\\
+5 & Notebook text says XGBoost PR--AUC $=0.238$ and ROC--AUC $=0.684$; the output shows 0.238 and 0.683. & 0.683 used (rounding difference).\\
+6 & The notebook title and file name differ between the main notebook and its checkpoint copies; the checkpoint folder contains an older, differently named version. & Only \texttt{project-04.ipynb} was used as the source of record.\\
+\bottomrule
+\end{longtable}
+}
+
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\clearpage
+\begin{thebibliography}{99}
+
+\bibitem{strack2014}
+B. Strack, J. P. DeShazo, C. Gennings, J. L. Olmo, S. Ventura, K. J. Cios, and J. N. Clore,
+``Impact of HbA1c measurement on hospital readmission rates: Analysis of 70,000 clinical database patient records,''
+\textit{BioMed Research International}, vol. 2014, Article 781670, 2014.
+doi:10.1155/2014/781670.
+
+\bibitem{clore2014}
+J. Clore, K. Cios, J. DeShazo, and B. Strack,
+\textit{Diabetes 130-US Hospitals for Years 1999--2008}.
+UCI Machine Learning Repository, 2014.
+Available at: \url{https://archive.ics.uci.edu/dataset/296/diabetes-130-us-hospitals-for-years-1999-2008}.
+
+\bibitem{chen2016}
+T. Chen and C. Guestrin,
+``XGBoost: A scalable tree boosting system,''
+in \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+pp. 785--794, 2016.
+doi:10.1145/2939672.2939785.
+
+\bibitem{pedregosa2011}
+F. Pedregosa, G. Varoquaux, A. Gramfort, et al.,
+``Scikit-learn: Machine learning in Python,''
+\textit{Journal of Machine Learning Research}, vol. 12, pp. 2825--2830, 2011.
+
+\bibitem{harris2020}
+C. R. Harris, K. J. Millman, S. J. van der Walt, et al.,
+``Array programming with NumPy,''
+\textit{Nature}, vol. 585, pp. 357--362, 2020.
+doi:10.1038/s41586-020-2649-2.
+
+\bibitem{virtanen2020}
+P. Virtanen, R. Gommers, T. E. Oliphant, et al.,
+``SciPy 1.0: Fundamental algorithms for scientific computing in Python,''
+\textit{Nature Methods}, vol. 17, pp. 261--272, 2020.
+doi:10.1038/s41592-019-0686-2.
+
+\bibitem{hunter2007}
+J. D. Hunter,
+``Matplotlib: A 2D graphics environment,''
+\textit{Computing in Science \& Engineering}, vol. 9, no. 3, pp. 90--95, 2007.
+doi:10.1109/MCSE.2007.55.
+
+\bibitem{waskom2021}
+M. L. Waskom,
+``Seaborn: Statistical data visualization,''
+\textit{Journal of Open Source Software}, vol. 6, no. 60, p. 3021, 2021.
+doi:10.21105/joss.03021.
+
+\bibitem{cohen1988}
+J. Cohen,
+\textit{Statistical Power Analysis for the Behavioral Sciences}, 2nd ed.
+Lawrence Erlbaum Associates, 1988.
+
+\bibitem{cramer1946}
+H. Cramér,
+\textit{Mathematical Methods of Statistics}.
+Princeton University Press, 1946.
+
+\end{thebibliography}
+
+\end{document}
